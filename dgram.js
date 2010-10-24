@@ -54,7 +54,40 @@ var httpServer = http.createServer(function (request, response) {
 
 var wsServer = ws.createServer({server: httpServer});
 
-wsServer.addListener('connection', function (connection) {});
+wsServer.addListener('connection', function (connection) {
+  var interval;
+  
+  connection.addListener('message', function (data) {
+    data = JSON.parse(data);
+    
+    if (data.node) {
+      clearInterval(interval);
+      
+      r.smembers('sets:' + data.node, function (err, res) {
+        if (res) {
+          res = res.map(function (item) { return item.toString(); });
+          
+          connection.send(JSON.stringify({type: 'node', sets: res}));
+          
+          interval = setInterval(function () {
+            res.forEach(function (endpoint) {
+              
+              r.get(endpoint, function (err, res) {
+                if (res) {
+                  var res = parseInt(res.toString());
+                  var num = res.toString() - endpoints[endpoint];
+                  wsServer.broadcast(JSON.stringify({endpoint: endpoint, amount: num}));
+                  endpoints[endpoint] = res;
+                }
+              });
+              
+            });
+          }, 500);
+        }
+      });
+    }
+  });
+});
 wsServer.addListener('close', function (connection) {});
 
 wsServer.listen(8000);
@@ -75,17 +108,17 @@ function getEndpoints() {
 getEndpoints();
 setInterval(getEndpoints, 5000);
 
-setInterval(function () {
-  for (var k in endpoints) {
-    (function (k) {
-      r.get(k, function (err, res) {
-        if (res) {
-          var res = parseInt(res.toString());
-          var num = res.toString() - endpoints[k];
-          wsServer.broadcast(JSON.stringify({endpoint: k, amount: num}));
-          endpoints[k] = res;
-        }
-      });
-    }(k));
-  }
-}, 500);
+// setInterval(function () {
+//   for (var k in endpoints) {
+//     (function (k) {
+//       r.get(k, function (err, res) {
+//         if (res) {
+//           var res = parseInt(res.toString());
+//           var num = res.toString() - endpoints[k];
+//           wsServer.broadcast(JSON.stringify({endpoint: k, amount: num}));
+//           endpoints[k] = res;
+//         }
+//       });
+//     }(k));
+//   }
+// }, 500);
