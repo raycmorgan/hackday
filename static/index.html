@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title></title>
+    
+    <style type="text/css">
+      html {background:#222; font-family:Helvetica, sans-serif;}
+      
+      h2 {color:#ccc; font-weight:normal; font-size:18px;}
+      
+      #running {position:relative; height:100px;}
+      #running div {position:absolute; bottom:0; width:5px; margin:0 1px; background:#aaa; float:right;}
+      #running .alt {background:#fff;}
+    </style>
+  </head>
+  
+  <body>
+    
+    <h2>/Search</h2>
+    <div id="running">
+    </div>
+    
+    <script src="jquery.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      
+      function bindRate(element, endpoint) {
+        
+      }
+      
+      var jj = 0;
+      function addRunningData(number) {
+        var klass = '';
+        if (jj++ && jj % 10 === 0) {
+          klass = 'alt';
+        }
+        
+        $('#running').append('<div class="' + klass + '" style="height:' + number + '%;" />');
+        
+        var divs   = $('#running div'),
+            max    = $('#running').width() / 6;
+        
+        if (divs.length > max) {
+          var over = divs.length - max - 1;
+          $('#running div:lt(' + over + ')').remove();
+          divs = $('#running div');
+        }
+        
+        divs.each(function (i, el) {
+          el.style.right =  (divs.length * 6) - (i * 6) + 'px';
+        });
+      }
+      
+      var i = 1000;
+      
+      (function go() {
+        addRunningData(~~(Math.random() * 100));
+        
+        if (i--) {
+          setTimeout(go, 100);
+        }
+      }())
+    </script>
+  </body>
+</html>

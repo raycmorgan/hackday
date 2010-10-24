@@ -1,8 +1,11 @@
 var dgram = require("dgram");
 var serverPath = "/tmp/dgram_server_sock";
 var server = dgram.createSocket("unix_dgram");
-var redis = require("./redis-client");
+var redis = require("./node_redis");
 var sys = require("sys");
+var http = require('http');
+
+var r = redis.createClient(6379, '192.168.10.211');
 
 server.on("message", function (msg, rinfo) {
   console.log("got: " + msg + " from " + rinfo.address);
@@ -10,7 +13,6 @@ server.on("message", function (msg, rinfo) {
 
 server.on("message", function(data) {
 	console.log("got some data");
-	var r = redis.createClient();
 	r.stream.on('connect', function() {
 			data = "hits" + data;
 			var key = data.replace(/\//g, ":");
@@ -26,3 +28,12 @@ server.on("listening", function () {
 })
 
 server.bind(serverPath);
+
+
+http.createServer(function (request, response) {
+  response.writeHead(200, {});
+  
+  r.get('hits:CoreValue', function (err, res) {
+    response.end(res);
+  });
+}).listen(8000);
