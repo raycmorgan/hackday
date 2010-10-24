@@ -35,12 +35,13 @@ server.bind(serverPath);
 var httpServer = http.createServer(function (request, response) {
   response.writeHead(200, {});
   
-  fs.readFile(__dirname + request.uri, function (err, contents) {
+  fs.readFile(__dirname + request.url, function (err, contents) {
     if (err) {
-      
+      response.writeHead(404, {});
+      response.end('404');
     } else {
-      response.writeHead(200, {'content-length': contents.length});
-      
+      response.writeHead(200);
+      response.end(contents);
     }
   });
   
@@ -49,9 +50,42 @@ var httpServer = http.createServer(function (request, response) {
   // });
 });
 
+// // // // // // CRAPPY CODE FOLLOWS // // // // // //
+
 var wsServer = ws.createServer({server: httpServer});
 
 wsServer.addListener('connection', function (connection) {});
 wsServer.addListener('close', function (connection) {});
 
 wsServer.listen(8000);
+
+var endpoints = {'hits:Info': 0};
+
+function getEndpoints() {
+  r.smembers('endpoints', function (err, res) {
+    if (res) {
+      res.forEach(function (item) {
+        if (!endpoints[item]) {
+          endpoints[item] = 0;
+        }
+      });
+    }
+  });
+}
+getEndpoints();
+setInterval(getEndpoints, 5000);
+
+setInterval(function () {
+  for (var k in endpoints) {
+    (function (k) {
+      r.get(k, function (err, res) {
+        if (res) {
+          var res = parseInt(res.toString());
+          var num = res.toString() - endpoints[k];
+          wsServer.broadcast(JSON.stringify({endpoint: k, amount: num}));
+          endpoints[k] = res;
+        }
+      });
+    }(k));
+  }
+}, 500);

@@ -9,41 +9,45 @@
       
       h2 {color:#ccc; font-weight:normal; font-size:18px;}
       
-      #running {position:relative; height:100px;}
-      #running div {position:absolute; bottom:0; width:5px; margin:0 1px; background:#aaa; float:right;}
-      #running .alt {background:#fff;}
+      .endpoint {position:relative; height:100px;}
+      .endpoint div {position:absolute; bottom:0; width:5px; margin:0 1px; background:#aaa; float:right;}
+      .endpoint .alt {background:#fff;}
     </style>
   </head>
   
   <body>
     
-    <h2>/Search</h2>
-    <div id="running">
-    </div>
+    <h2>/Info</h2>
+    <div id="running"></div>
     
     <script src="jquery.js" type="text/javascript"></script>
     <script type="text/javascript">
+      var endpoints = {};
       
-      function bindRate(element, endpoint) {
+      function createEndpoint(parent, endpoint) {
+        var parent = $(parent);
         
+        endpoints[endpoint] = $('<h2>' + endpoint + '</h2><div class="endpoint"></div>');
+        parent.append(endpoints[endpoint]);
       }
       
       var jj = 0;
-      function addRunningData(number) {
+      function addRunningData(endpoint, number) {
+        var el = endpoints[endpoint];
         var klass = '';
         if (jj++ && jj % 10 === 0) {
           klass = 'alt';
         }
         
-        $('#running').append('<div class="' + klass + '" style="height:' + number + '%;" />');
+        el.append('<div class="' + klass + '" style="height:' + number + '%;" />');
         
-        var divs   = $('#running div'),
-            max    = $('#running').width() / 6;
+        var divs   = el.find('div'),
+            max    = el.width() / 6;
         
         if (divs.length > max) {
           var over = divs.length - max - 1;
-          $('#running div:lt(' + over + ')').remove();
-          divs = $('#running div');
+          el.find('div:lt(' + over + ')').remove();
+          divs = el.find('div');
         }
         
         divs.each(function (i, el) {
@@ -51,15 +55,27 @@
         });
       }
       
-      var i = 1000;
+      // var i = 1000;
+      // 
+      // (function go() {
+      //   addRunningData(~~(Math.random() * 100));
+      //   
+      //   if (i--) {
+      //     setTimeout(go, 100);
+      //   }
+      // }());
       
-      (function go() {
-        addRunningData(~~(Math.random() * 100));
+      var socket = new WebSocket('ws://localhost:8000');
+      socket.onmessage = function (msg) {
+        var data = JSON.parse(msg.data);
         
-        if (i--) {
-          setTimeout(go, 100);
+        if (!endpoints[data.endpoint]) {
+          createEndpoint('#running', data.endpoint);
         }
-      }())
+        
+        addRunningData(data.endpoint, data.amount + 1);
+      };
+      
     </script>
   </body>
 </html>
