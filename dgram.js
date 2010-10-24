@@ -4,6 +4,8 @@ var server = dgram.createSocket("unix_dgram");
 var redis = require("./node_redis");
 var sys = require("sys");
 var http = require('http');
+var fs   = require('fs');
+var ws   = require('./node-websocket-server/lib/ws');
 
 var r = redis.createClient(6379, '192.168.10.211');
 
@@ -30,10 +32,26 @@ server.on("listening", function () {
 server.bind(serverPath);
 
 
-http.createServer(function (request, response) {
+var httpServer = http.createServer(function (request, response) {
   response.writeHead(200, {});
   
-  r.get('hits:CoreValue', function (err, res) {
-    response.end(res);
+  fs.readFile(__dirname + request.uri, function (err, contents) {
+    if (err) {
+      
+    } else {
+      response.writeHead(200, {'content-length': contents.length});
+      
+    }
   });
-}).listen(8000);
+  
+  // r.get('hits:CoreValue', function (err, res) {
+  //   response.end(res);
+  // });
+});
+
+var wsServer = ws.createServer({server: httpServer});
+
+wsServer.addListener('connection', function (connection) {});
+wsServer.addListener('close', function (connection) {});
+
+wsServer.listen(8000);
