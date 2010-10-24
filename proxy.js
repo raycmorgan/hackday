@@ -1,17 +1,21 @@
 var http = require('http');
-var sys = require('sys');
 var dgram = require("dgram");
 var serverPath = "/tmp/dgram_server_sock";
+var url = require('url');
 
+var client = dgram.createSocket("udp4");
 http.createServer(function(request, response) {
-try {
-  var proxy = http.createClient(80, request.headers['host'])
+	var host = request.headers['host'];
+  var proxy = http.createClient(80, host)
+console.log("proxy_request logged for " + request.url + " to " + host);
+
+	if (host != null) {
   var proxy_request = proxy.request(request.method, request.url, request.headers);
-var client = dgram.createSocket("unix_dgram");
-var message = new Buffer(request.url);
-client.send(message, 0, message.length, serverPath);
 
   proxy_request.addListener('response', function (proxy_response) { proxy_response.addListener('data', function(chunk) {
+			var urlObj = url.parse(request.url);
+			var message = new Buffer(host + urlObj.pathname + "/" + request.method + "/" + proxy_response.statusCode);
+			client.send(message, 0, message.length,8001, "localhost");
       response.write(chunk, 'binary');
     });
     proxy_response.addListener('end', function() {
@@ -25,9 +29,6 @@ client.send(message, 0, message.length, serverPath);
   request.addListener('end', function() {
     proxy_request.end();
   });
-}
-catch (error) {
-	sys.puts("Error = " + error);
 }
 }).listen(8080);
 
