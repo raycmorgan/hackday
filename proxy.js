@@ -36,7 +36,6 @@ http.createServer(function(request, response) {
       
     request.addListener('end', function() {
       proxy_request.end();
-      proxy_request = null;
     });
   }
 }).listen(8080);
